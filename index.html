@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Felix's Study Command Center</title>
+<style>
+  :root {
+    --bg-dark: #0f172a; --bg-card: #1e293b; --bg-input: #0f172a;
+    --border: #334155; --text: #e2e8f0; --text-dim: #94a3b8; --text-faint: #64748b;
+    --purple: #6366f1; --pink: #ec4899; --amber: #f59e0b; --blue: #3b82f6;
+    --green: #10b981; --red: #ef4444; --teal: #14b8a6; --violet: #8b5cf6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    color: var(--text);
+  }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-card); }
+  ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+  .header {
+    background: linear-gradient(90deg, var(--purple), var(--violet), var(--pink));
+    padding: 24px 32px; text-align: center; border-bottom: 2px solid #ffffff11;
+  }
+  .header h1 { font-size: 32px; font-weight: 900; color: #fff; letter-spacing: -0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+  .header p { font-size: 14px; color: #e2e8f0cc; margin-top: 4px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+  .stats-row { display: flex; gap: 20px; margin-bottom: 24px; flex-wrap: wrap; }
+  .progress-card {
+    background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); flex: 0 0 auto;
+  }
+  .rewards-card {
+    background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2); flex: 1; min-width: 280px;
+  }
+  .rewards-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .rewards-title span.sub { font-size: 11px; color: var(--text-faint); font-weight: 400; }
+  .rewards-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+  .fun-block {
+    border-radius: 12px; padding: 12px 16px; text-align: center; min-width: 100px;
+    position: relative; overflow: hidden; transition: all 0.3s ease;
+  }
+  .fun-block.locked { background: #0f172a88; border: 2px dashed var(--border); opacity: 0.5; cursor: not-allowed; }
+  .fun-block.unlocked { background: var(--bg-dark); border: 2px solid var(--green); cursor: pointer; }
+  .fun-block .lock-icon { position: absolute; top: 4px; right: 8px; font-size: 16px; }
+  .fun-block .emoji { font-size: 28px; }
+  .fun-block .name { font-size: 12px; font-weight: 600; margin-top: 4px; }
+  .fun-block.locked .name { color: var(--text-faint); }
+  .fun-block.unlocked .name { color: var(--text); }
+  .fun-block .duration { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+  .fun-block .unlock-label {
+    font-size: 10px; color: var(--green); font-weight: 700; margin-top: 4px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--bg-card); border-radius: 12px; padding: 4px; width: fit-content; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px;
+    border: none; color: var(--text-dim); background: transparent; transition: all 0.2s ease;
+  }
+  .tab-btn.active { color: #fff; background: linear-gradient(135deg, var(--purple), var(--violet)); }
+  .tab-btn:hover:not(.active) { color: var(--text); background: #334155; }
+  .card {
+    background: var(--bg-card); border-radius: 16px; padding: 24px;
+    border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .card-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+  .btn {
+    padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 14px;
+    border: none; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--purple), var(--violet)); color: #fff; }
+  .btn-success { background: linear-gradient(135deg, var(--green), #059669); color: #fff; }
+  .btn-danger { background: #ef444433; color: var(--red); border: 1px solid #ef444455; }
+  .btn-ghost { background: var(--border); color: var(--text); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .input, .select-input {
+    background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; color: var(--text); font-size: 14px; width: 100%; outline: none;
+  }
+  .input:focus, .select-input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px #6366f133; }
+  .select-input { cursor: pointer; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; display: block; }
+  .assignment-card { transition: all 0.3s ease; }
+  .assignment-card.finished { opacity: 0.7; border-color: #10b98144; background: #10b98108; }
+  .assignment-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .assignment-info { flex: 1; min-width: 200px; }
+  .assignment-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .assignment-title { font-size: 16px; font-weight: 700; }
+  .assignment-title.done { text-decoration: line-through; }
+  .assignment-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .subject-badge {
+    display: inline-flex; align-items: center; gap: 4px; border-radius: 6px;
+    padding: 4px 12px; font-size: 13px; font-weight: 600;
+  }
+  .status-select { border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600; cursor: pointer; outline: none; }
+  .time-row { display: flex; align-items: center; gap: 6px; }
+  .time-label { font-size: 11px; color: var(--text-faint); width: 55px; }
+  .time-input { width: 70px; padding: 4px 8px; font-size: 13px; }
+  .time-unit { font-size: 11px; color: var(--text-faint); }
+  .accuracy-bar { margin-top: 12px; padding: 8px 12px; background: var(--bg-dark); border-radius: 8px; }
+  .accuracy-header { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .accuracy-track { height: 6px; background: var(--bg-card); border-radius: 3px; overflow: hidden; }
+  .accuracy-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+  .due-date { font-size: 12px; font-weight: 600; }
+  .due-date.overdue { color: var(--red); }
+  .due-date.normal { color: var(--text-faint); }
+  .due-date.upcoming { color: var(--amber); }
+  .schedule-grid { display: grid; gap: 12px; }
+  .schedule-grid.weekday { grid-template-columns: repeat(5, 1fr); min-width: 700px; }
+  .schedule-grid.weekend { grid-template-columns: repeat(2, 1fr); }
+  .day-header {
+    font-size: 13px; font-weight: 800; text-align: center; padding: 8px 0; border-radius: 8px; margin-bottom: 10px;
+  }
+  .day-header.weekday { background: linear-gradient(135deg, #6366f122, #8b5cf622); color: #f1f5f9; }
+  .day-header.weekend { background: linear-gradient(135deg, #10b98122, #05966944); color: #f1f5f9; }
+  .schedule-block {
+    border-radius: 8px; padding: 8px 12px; margin-bottom: 6px; font-size: 12px; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .schedule-block .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .schedule-block .time { font-size: 10px; opacity: 0.7; margin-left: 4px; white-space: nowrap; }
+  .empty-state { text-align: center; padding: 48px; }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+  .empty-state .title { font-size: 16px; font-weight: 600; color: var(--text-dim); }
+  .empty-state .desc { font-size: 13px; color: var(--text-faint); margin-top: 4px; }
+  .pomo-container {
+    background: var(--bg-card); border-radius: 16px; padding: 40px; border: 1px solid var(--border);
+    text-align: center; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .pomo-mode { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+  .pomo-session { font-size: 12px; color: var(--text-faint); margin-bottom: 24px; }
+  .pomo-time { font-size: 48px; font-weight: 900; color: #f1f5f9; font-variant-numeric: tabular-nums; }
+  .pomo-controls { display: flex; justify-content: center; gap: 12px; margin: 24px 0; }
+  .pomo-start {
+    padding: 12px 32px; border-radius: 12px; border: none; cursor: pointer;
+    font-weight: 800; font-size: 16px; color: #fff;
+  }
+  .pomo-reset {
+    padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border);
+    cursor: pointer; font-weight: 600; font-size: 14px; color: var(--text-dim); background: var(--bg-dark);
+  }
+  .pomo-modes { display: flex; justify-content: center; gap: 8px; }
+  .pomo-mode-btn {
+    padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; background: var(--bg-dark); color: var(--text-faint); border: 1px solid var(--border);
+  }
+  .pomo-mode-btn.active { border-width: 2px; }
+  .parent-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .parent-stat {
+    background: var(--bg-dark); border-radius: 12px; padding: 20px; text-align: center;
+    border: 1px solid var(--border);
+  }
+  .parent-stat .value { font-size: 32px; font-weight: 900; }
+  .parent-stat .label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .subject-row {
+    display: flex; justify-content: space-between; align-items: center; padding: 12px 0;
+    border-bottom: 1px solid #334155;
+  }
+  .subject-row:last-child { border-bottom: none; }
+  .mini-bar { height: 8px; background: var(--bg-dark); border-radius: 4px; flex: 1; margin: 0 16px; max-width: 200px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .accuracy-insight { padding: 16px; background: var(--bg-dark); border-radius: 12px; border: 1px solid var(--border); }
+  .accuracy-insight .insight-value { font-size: 24px; font-weight: 800; }
+  .accuracy-insight .insight-label { font-size: 12px; color: var(--text-dim); }
+  .data-bar {
+    display: flex; gap: 8px; margin-bottom: 24px; padding: 12px 16px;
+    background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border);
+    align-items: center; flex-wrap: wrap;
+  }
+  .data-bar .spacer { flex: 1; }
+  .data-bar .save-status { font-size: 11px; color: var(--text-faint); }
+  .toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--green), #059669); color: #fff;
+    padding: 16px 32px; border-radius: 16px; font-weight: 800; font-size: 18px;
+    z-index: 1000; box-shadow: 0 8px 30px rgba(16,185,129,0.4);
+    animation: slideDown 0.5s ease; pointer-events: none;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .progress-ring-circle { transition: stroke-dashoffset 0.8s ease, stroke 0.5s ease; }
+  @media (max-width: 768px) {
+    .header h1 { font-size: 22px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .stats-row { flex-direction: column; }
+    .tabs { width: 100%; }
+    .tab-btn { flex: 1; text-align: center; padding: 10px 12px; font-size: 12px; }
+    .container { padding: 16px 12px; }
+  }
+  #import-input { display: none; }
+</style>
+</head>
+<body>
+  <div id="toast" class="toast" style="display:none"></div>
+  <div class="header">
+    <h1>Felix's Study Command Center 🚀</h1>
+    <p id="week-range"></p>
+  </div>
+  <div class="container">
+    <div class="data-bar">
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">📥 Export Data</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-input').click()">📤 Import Data</button>
+      <input type="file" id="import-input" accept=".json" onchange="importData(event)">
+      <div class="spacer"></div>
+      <span class="save-status" id="save-status">Auto-saved ✓</span>
+    </div>
+    <div class="stats-row">
+      <div class="progress-card">
+        <div id="progress-ring-container"></div>
+        <div>
+          <div style="font-size:14px;color:var(--text-dim)">Overall Progress</div>
+          <div id="progress-count" style="font-size:24px;font-weight:800"></div>
+          <div style="font-size:12px;color:var(--text-faint)">assignments done</div>
+        </div>
+      </div>
+      <div class="rewards-card">
+        <div class="rewards-title">
+          <span style="font-size:18px">🏆</span> Reward Blocks
+          <span class="sub">— Complete assignments to unlock fun time!</span>
+        </div>
+        <div class="rewards-grid" id="rewards-grid"></div>
+      </div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="tab-content"></div>
+  </div>
+<script>
+const SUBJECTS = [
+  { id: "aphg", name: "AP Human Geography", color: "#6366f1", emoji: "🌍" },
+  { id: "music", name: "Digital Music", color: "#ec4899", emoji: "🎵" },
+  { id: "english", name: "English 10", color: "#f59e0b", emoji: "📖" },
+  { id: "french", name: "French 3", color: "#3b82f6", emoji: "🇫🇷" },
+  { id: "math", name: "Math", color: "#10b981", emoji: "📐" },
+  { id: "science", name: "Science", color: "#8b5cf6", emoji: "🔬" },
+  { id: "pe", name: "Physical Education", color: "#ef4444", emoji: "🏃" },
+  { id: "cas", name: "CAS", color: "#14b8a6", emoji: "🤝" }
+];
+const STATUS_OPTIONS = [
+  { value: "not_started", label: "Not Started", color: "#64748b", icon: "○" },
+  { value: "in_progress", label: "About Halfway", color: "#f59e0b", icon: "◐" },
+  { value: "more_than_half", label: "More Than Halfway", color: "#3b82f6", icon: "◕" },
+  { value: "finished", label: "Finished!!!", color: "#10b981", icon: "●" }
+];
+const FUN_ACTIVITIES = [
+  { id: "gaming", name: "Gaming", emoji: "🎮", duration: 60 },
+  { id: "sports", name: "Sports / Practice", emoji: "⚽", duration: 90 },
+  { id: "dinner", name: "Dinner", emoji: "🍕", duration: 45 },
+  { id: "chill", name: "Free Time", emoji: "😎", duration: 30 },
+  { id: "music_fun", name: "Listen to Music", emoji: "🎧", duration: 30 },
+  { id: "social", name: "Hang with Friends", emoji: "👥", duration: 60 }
+];
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const WEEKDAYS = DAYS.slice(0, 5);
+const WEEKEND = DAYS.slice(5);
+const TABS = [
+  { id: "assignments", label: "📋 Assignments" },
+  { id: "schedule", label: "📅 Weekly Schedule" },
+  { id: "pomodoro", label: "🍅 Pomodoro" },
+  { id: "parent", label: "👨‍👦 Parent Dashboard" }
+];
+
+let state = {
+  assignments: [], activeTab: "assignments", showAddForm: false,
+  pomodoroMode: "work", pomodoroTime: 25 * 60, pomodoroRunning: false, pomodoroSessions: 0
+};
+let pomodoroInterval = null;
+
+function saveState() {
+  try {
+    const data = { assignments: state.assignments, pomodoroSessions: state.pomodoroSessions };
+    localStorage.setItem("felix-planner", JSON.stringify(data));
+    const el = document.getElementById("save-status");
+    if (el) el.textContent = "Auto-saved ✓";
+  } catch (e) { console.warn("Save failed:", e); }
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem("felix-planner");
+    if (raw) { const data = JSON.parse(raw); state.assignments = data.assignments || []; state.pomodoroSessions = data.pomodoroSessions || 0; }
+  } catch (e) { console.warn("Load failed:", e); }
+}
+function exportData() {
+  const data = { assignments: state.assignments, exportDate: new Date().toISOString(), pomodoroSessions: state.pomodoroSessions };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = `felix-planner-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url); showToast("📥 Data exported!");
+}
+function importData(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try { const data = JSON.parse(e.target.result); state.assignments = data.assignments || []; state.pomodoroSessions = data.pomodoroSessions || 0; saveState(); render(); showToast("📤 Data imported successfully!"); }
+    catch (err) { showToast("❌ Invalid file format"); }
+  };
+  reader.readAsText(file); event.target.value = "";
+}
+
+function genId() { return Math.random().toString(36).substr(2, 9); }
+function getSubject(id) { return SUBJECTS.find(s => s.id === id) || SUBJECTS[0]; }
+function getWeekRange() {
+  const now = new Date(); const day = now.getDay(); const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(now); mon.setDate(now.getDate() + diff);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${fmt(mon)} – ${fmt(sun)}`;
+}
+function formatDate(dateStr) {
+  if (!dateStr) return ""; const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+function isOverdue(dateStr) { if (!dateStr) return false; return new Date(dateStr + "T23:59:59") < new Date(); }
+function daysUntilDue(dateStr) {
+  if (!dateStr) return Infinity; const due = new Date(dateStr + "T23:59:59");
+  return Math.ceil((due - new Date()) / (1000 * 60 * 60 * 24));
+}
+function getDayOfWeek(dateStr) {
+  if (!dateStr) return null; const d = new Date(dateStr + "T12:00:00"); const day = d.getDay();
+  return day === 0 ? 6 : day - 1;
+}
+function showToast(msg) {
+  const el = document.getElementById("toast"); el.textContent = msg; el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 3000);
+}
+function escapeHtml(str) { const div = document.createElement("div"); div.textContent = str; return div.innerHTML; }
+
+function getStats() {
+  const total = state.assignments.length;
+  const completed = state.assignments.filter(a => a.status === "finished").length;
+  const progress = total === 0 ? 0 : (completed / total) * 100;
+  return { total, completed, progress, unlocked: Math.floor(completed) };
+}
+
+function generateSchedule() {
+  const sched = {}; DAYS.forEach(d => sched[d] = []);
+  WEEKDAYS.forEach(day => {
+    sched[day].push({ type: "fixed", label: "🏫 School", time: "8:35–15:40", color: "#334155" });
+    sched[day].push({ type: "fixed", label: "🍕 Dinner", time: "18:00–18:45", color: "#f59e0b" });
+  });
+  sched["Wednesday"].unshift({ type: "fixed", label: "🏃 Practice", time: "7:00", color: "#ef4444" });
+  WEEKEND.forEach(day => { sched[day].push({ type: "fixed", label: "🍕 Dinner", time: "18:00–18:45", color: "#f59e0b" }); });
+
+  const availSlots = {
+    Monday: ["16:00","16:30","17:00","17:30","19:00","19:30","20:00","20:30"],
+    Tuesday: ["16:00","16:30","17:00","17:30","19:00","19:30","20:00","20:30"],
+    Wednesday: ["16:00","16:30","17:00","17:30","19:00","19:30","20:00","20:30"],
+    Thursday: ["16:00","16:30","17:00","17:30","19:00","19:30","20:00","20:30"],
+    Friday: ["16:00","16:30","17:00","17:30","19:00","19:30"],
+    Saturday: ["10:00","10:30","11:00","11:30","14:00","14:30","15:00","15:30","16:00","19:00","19:30"],
+    Sunday: ["10:00","10:30","11:00","11:30","14:00","14:30","15:00","15:30","16:00","19:00","19:30"]
+  };
+  const slotIdx = {}; DAYS.forEach(d => slotIdx[d] = 0);
+
+  const pending = state.assignments.filter(a => a.status !== "finished")
+    .sort((a, b) => { if (!a.dueDate) return 1; if (!b.dueDate) return -1; return new Date(a.dueDate) - new Date(b.dueDate); });
+
+  pending.forEach(a => {
+    const subj = getSubject(a.subject);
+    const dueDay = getDayOfWeek(a.dueDate);
+    const targetDays = dueDay !== null ? DAYS.filter((_, i) => i <= dueDay) : DAYS;
+    let placed = false;
+    for (const day of targetDays) {
+      if (slotIdx[day] < availSlots[day].length) {
+        sched[day].push({ type: "study", label: `${subj.emoji} ${a.title || subj.name}`, time: availSlots[day][slotIdx[day]], color: subj.color });
+        slotIdx[day]++; placed = true; break;
+      }
+    }
+    if (!placed) {
+      for (const day of DAYS) {
+        if (slotIdx[day] < availSlots[day].length) {
+          sched[day].push({ type: "study", label: `${subj.emoji} ${a.title || subj.name}`, time: availSlots[day][slotIdx[day]], color: subj.color });
+          slotIdx[day]++; break;
+        }
+      }
+    }
+  });
+
+  const { unlocked } = getStats();
+  const funToAdd = FUN_ACTIVITIES.slice(0, unlocked);
+  let funIdx = 0;
+  DAYS.forEach(day => {
+    if (funIdx < funToAdd.length && slotIdx[day] < availSlots[day].length) {
+      const fun = funToAdd[funIdx];
+      sched[day].push({ type: "fun", label: `${fun.emoji} ${fun.name}`, time: availSlots[day][availSlots[day].length - 1], color: "#10b981" });
+      funIdx++;
+    }
+  });
+  DAYS.forEach(day => sched[day].sort((a, b) => a.time.localeCompare(b.time)));
+  return sched;
+}
+
+function renderProgressRing(progress, size, strokeWidth) {
+  size = size || 120; strokeWidth = strokeWidth || 10;
+  const r = (size - strokeWidth) / 2; const circ = r * 2 * Math.PI;
+  const offset = circ - (progress / 100) * circ;
+  const color = progress === 100 ? "#10b981" : progress >= 50 ? "#3b82f6" : "#f59e0b";
+  return '<div style="position:relative;width:'+size+'px;height:'+size+'px">' +
+    '<svg width="'+size+'" height="'+size+'" style="transform:rotate(-90deg)">' +
+    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="#1e293b" stroke-width="'+strokeWidth+'"/>' +
+    '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+strokeWidth+
+    '" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round" class="progress-ring-circle"/>' +
+    '</svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">' +
+    '<span style="font-size:28px;font-weight:800;color:#f1f5f9">'+Math.round(progress)+'%</span>' +
+    '<span style="font-size:11px;color:#94a3b8;margin-top:2px">complete</span></div></div>';
+}
+
+function render() {
+  const { total, completed, progress, unlocked } = getStats();
+  document.getElementById("week-range").textContent = getWeekRange() + " • Stay on top of it.";
+  document.getElementById("progress-ring-container").innerHTML = renderProgressRing(progress);
+  document.getElementById("progress-count").textContent = completed + "/" + total;
+
+  document.getElementById("rewards-grid").innerHTML = FUN_ACTIVITIES.map(function(act, i) {
+    const isUnlocked = i < unlocked;
+    return '<div class="fun-block ' + (isUnlocked ? 'unlocked' : 'locked') + '">' +
+      (!isUnlocked ? '<div class="lock-icon">🔒</div>' : '') +
+      '<div class="emoji">' + act.emoji + '</div>' +
+      '<div class="name">' + act.name + '</div>' +
+      '<div class="duration">' + act.duration + ' min</div>' +
+      (isUnlocked ? '<div class="unlock-label">Unlocked!</div>' : '') + '</div>';
+  }).join("");
+
+  document.getElementById("tabs").innerHTML = TABS.map(function(t) {
+    return '<button class="tab-btn ' + (state.activeTab === t.id ? 'active' : '') + '" onclick="switchTab(\'' + t.id + '\')">' + t.label + '</button>';
+  }).join("");
+
+  var content = document.getElementById("tab-content");
+  if (state.activeTab === "assignments") content.innerHTML = renderAssignments();
+  else if (state.activeTab === "schedule") content.innerHTML = renderSchedule();
+  else if (state.activeTab === "pomodoro") content.innerHTML = renderPomodoro();
+  else if (state.activeTab === "parent") content.innerHTML = renderParentDashboard();
+}
+
+function switchTab(id) { state.activeTab = id; render(); if (id === "pomodoro") startPomodoroDisplay(); }
+
+function renderAssignments() {
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">' +
+    '<h2 style="font-size:20px;font-weight:800">My Assignments</h2>' +
+    '<button class="btn btn-primary" onclick="toggleAddForm()">' + (state.showAddForm ? '✕ Cancel' : '+ Add Assignment') + '</button></div>';
+
+  if (state.showAddForm) {
+    html += '<div class="card" style="border:2px solid #6366f155"><div class="form-grid">' +
+      '<div><label class="form-label">Subject</label><select class="select-input" id="new-subject">' +
+      SUBJECTS.map(function(s) { return '<option value="' + s.id + '">' + s.emoji + ' ' + s.name + '</option>'; }).join("") +
+      '</select></div>' +
+      '<div><label class="form-label">Assignment Title</label><input class="input" id="new-title" placeholder="e.g. Chapter 5 Review Questions" onkeydown="if(event.key===\'Enter\')addAssignment()"></div>' +
+      '<div><label class="form-label">Due Date</label><input type="date" class="input" id="new-due"></div>' +
+      '<div><label class="form-label">Estimated Time (minutes)</label><input type="number" class="input" id="new-est" value="30" min="5" step="5"></div>' +
+      '</div><div style="margin-top:16px;display:flex;justify-content:flex-end">' +
+      '<button class="btn btn-success" onclick="addAssignment()">Add Assignment ✓</button></div></div>';
+  }
+
+  if (state.assignments.length === 0) {
+    html += '<div class="card empty-state"><div class="emoji">📝</div><div class="title">No assignments yet</div>' +
+      '<div class="desc">Add your first assignment to get your schedule rolling!</div></div>';
+  } else {
+    var sorted = state.assignments.slice().sort(function(a, b) {
+      if (a.status === "finished" && b.status !== "finished") return 1;
+      if (a.status !== "finished" && b.status === "finished") return -1;
+      if (!a.dueDate) return 1; if (!b.dueDate) return -1;
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    });
+    html += '<div style="display:flex;flex-direction:column;gap:12px">';
+    sorted.forEach(function(a) {
+      var subj = getSubject(a.subject);
+      var fin = a.status === "finished";
+      var overdue = isOverdue(a.dueDate) && !fin;
+      var days = daysUntilDue(a.dueDate);
+      var upcoming = !fin && days <= 3 && days > 0;
+      var statusOpt = STATUS_OPTIONS.find(function(s) { return s.value === a.status; }) || STATUS_OPTIONS[0];
+
+      html += '<div class="card assignment-card ' + (fin ? 'finished' : '') + '" style="padding:16px">' +
+        '<div class="assignment-header"><div class="assignment-info"><div class="assignment-meta">' +
+        '<span class="subject-badge" style="background:' + subj.color + '22;color:' + subj.color + ';border:1px solid ' + subj.color + '44">' +
+        subj.emoji + ' ' + subj.name + '</span>';
+      if (a.dueDate) {
+        html += '<span class="due-date ' + (overdue ? 'overdue' : upcoming ? 'upcoming' : 'normal') + '">' +
+          'Due: ' + formatDate(a.dueDate) + (overdue ? ' ⚠️ OVERDUE' : upcoming ? ' ⏰ Soon!' : '') + '</span>';
+      }
+      html += '</div><div class="assignment-title ' + (fin ? 'done' : '') + '">' + escapeHtml(a.title) + '</div></div>' +
+        '<div class="assignment-controls">' +
+        '<select class="status-select" style="background:' + statusOpt.color + '22;color:' + statusOpt.color + ';border:1px solid ' + statusOpt.color + '55" onchange="updateAssignment(\'' + a.id + '\',\'status\',this.value)">' +
+        STATUS_OPTIONS.map(function(s) { return '<option value="' + s.value + '"' + (s.value === a.status ? ' selected' : '') + '>' + s.icon + ' ' + s.label + '</option>'; }).join("") +
+        '</select><div>' +
+        '<div class="time-row"><span class="time-label">Est:</span><input type="number" class="input time-input" value="' + a.estimatedMinutes + '" min="5" step="5" onchange="updateAssignment(\'' + a.id + '\',\'estimatedMinutes\',parseInt(this.value)||0)"><span class="time-unit">min</span></div>' +
+        '<div class="time-row" style="margin-top:4px"><span class="time-label">Actual:</span><input type="number" class="input time-input" value="' + (a.actualMinutes || '') + '" placeholder="—" min="0" step="5" onchange="updateAssignment(\'' + a.id + '\',\'actualMinutes\',this.value)"><span class="time-unit">min</span></div>' +
+        '</div><button class="btn btn-danger btn-sm" onclick="deleteAssignment(\'' + a.id + '\')">🗑</button></div></div>';
+
+      if (a.actualMinutes && a.estimatedMinutes > 0) {
+        var actual = parseInt(a.actualMinutes); var est = a.estimatedMinutes;
+        var under = actual <= est; var diff = Math.abs(actual - est);
+        var pct = Math.min(100, (actual / est) * 100);
+        html += '<div class="accuracy-bar"><div class="accuracy-header"><span>Time Accuracy</span><span>' +
+          (under ? diff + ' min under estimate ✨' : diff + ' min over estimate') + '</span></div>' +
+          '<div class="accuracy-track"><div class="accuracy-fill" style="width:' + pct + '%;background:' +
+          (under ? 'linear-gradient(90deg,#10b981,#059669)' : 'linear-gradient(90deg,#f59e0b,#ef4444)') + '"></div></div></div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  return html;
+}
+
+function toggleAddForm() { state.showAddForm = !state.showAddForm; render(); }
+
+function addAssignment() {
+  var title = document.getElementById("new-title").value.trim();
+  if (!title) { showToast("Give your assignment a name!"); return; }
+  state.assignments.push({
+    id: genId(), subject: document.getElementById("new-subject").value, title: title,
+    dueDate: document.getElementById("new-due").value,
+    estimatedMinutes: parseInt(document.getElementById("new-est").value) || 30,
+    actualMinutes: "", status: "not_started"
+  });
+  state.showAddForm = false; saveState(); render(); showToast("📝 Assignment added!");
+}
+
+function updateAssignment(id, field, value) {
+  var a = state.assignments.find(function(x) { return x.id === id; }); if (!a) return;
+  var wasFin = a.status === "finished"; a[field] = value;
+  if (field === "status" && value === "finished" && !wasFin) { var subj = getSubject(a.subject); showToast(subj.emoji + ' Nice! "' + a.title + '" is done!'); }
+  saveState(); render();
+}
+
+function deleteAssignment(id) {
+  state.assignments = state.assignments.filter(function(a) { return a.id !== id; });
+  saveState(); render();
+}
+
+function renderSchedule() {
+  var sched = generateSchedule();
+  var html = '<h2 style="font-size:20px;font-weight:800;margin-bottom:4px">Weekly Schedule</h2>' +
+    '<p style="font-size:13px;color:var(--text-faint);margin-bottom:20px">Auto-generated from your assignments. Complete more tasks to unlock fun blocks!</p>' +
+    '<div class="card" style="overflow-x:auto"><h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:var(--text-dim)">School Week</h3>' +
+    '<div class="schedule-grid weekday">';
+  WEEKDAYS.forEach(function(day) {
+    html += '<div><div class="day-header weekday">' + day + '</div>';
+    (sched[day] || []).forEach(function(b) {
+      html += '<div class="schedule-block" style="background:' + b.color + '18;border:1px solid ' + b.color + '44;color:' + b.color + '">' +
+        '<span class="label">' + b.label + '</span><span class="time">' + b.time + '</span></div>';
+    });
+    if ((sched[day] || []).length === 0) html += '<div style="font-size:11px;color:#475569;text-align:center;padding:12px">Nothing scheduled</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+
+  html += '<div class="card" style="overflow-x:auto"><h3 style="font-size:15px;font-weight:700;margin-bottom:8px;color:var(--text-dim)">Weekend</h3>' +
+    '<p style="font-size:12px;color:var(--text-faint);margin-bottom:16px">🍅 Tip: Use Pomodoro sessions (25 min work + 5 min break) to power through weekend study blocks. BE REALISTIC!!!</p>' +
+    '<div class="schedule-grid weekend">';
+  WEEKEND.forEach(function(day) {
+    html += '<div><div class="day-header weekend">' + day + '</div>';
+    (sched[day] || []).forEach(function(b) {
+      html += '<div class="schedule-block" style="background:' + b.color + '18;border:1px solid ' + b.color + '44;color:' + b.color + '">' +
+        '<span class="label">' + b.label + '</span><span class="time">' + b.time + '</span></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+var POMO_DURATIONS = { work: 25*60, "break": 5*60, longbreak: 15*60 };
+var POMO_LABELS = { work: "Focus Time", "break": "Short Break", longbreak: "Long Break" };
+var POMO_COLORS = { work: "#6366f1", "break": "#10b981", longbreak: "#f59e0b" };
+
+function renderPomodoro() {
+  var m = state.pomodoroMode; var t = state.pomodoroTime;
+  var mins = String(Math.floor(t / 60)).padStart(2, "0");
+  var secs = String(t % 60).padStart(2, "0");
+  var dur = POMO_DURATIONS[m]; var prog = ((dur - t) / dur) * 100;
+  var color = POMO_COLORS[m]; var r = 88; var circ = r * 2 * Math.PI;
+  var offset = circ - (prog / 100) * circ;
+
+  return '<div class="pomo-container">' +
+    '<div class="pomo-mode" style="color:' + color + '">' + POMO_LABELS[m] + '</div>' +
+    '<div class="pomo-session">Session ' + (state.pomodoroSessions + (m === "work" ? 1 : 0)) + ' • ' + state.pomodoroSessions + ' completed</div>' +
+    '<div style="position:relative;width:200px;height:200px;margin:0 auto 24px">' +
+    '<svg width="200" height="200" style="transform:rotate(-90deg)">' +
+    '<circle cx="100" cy="100" r="' + r + '" fill="none" stroke="#0f172a" stroke-width="8"/>' +
+    '<circle id="pomo-ring" cx="100" cy="100" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="8" ' +
+    'stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" stroke-linecap="round" style="transition:stroke-dashoffset 1s linear"/>' +
+    '</svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">' +
+    '<span id="pomo-display" class="pomo-time">' + mins + ':' + secs + '</span></div></div>' +
+    '<div class="pomo-controls">' +
+    '<button class="pomo-start" style="background:' + (state.pomodoroRunning ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,' + color + ',' + color + 'cc)') +
+    ';box-shadow:0 4px 15px ' + (state.pomodoroRunning ? '#ef444444' : color + '44') + '" onclick="togglePomodoro()">' +
+    (state.pomodoroRunning ? '⏸ Pause' : '▶ Start') + '</button>' +
+    '<button class="pomo-reset" onclick="resetPomodoro(\'' + m + '\')">↺ Reset</button></div>' +
+    '<div class="pomo-modes">' +
+    Object.keys(POMO_LABELS).map(function(key) {
+      return '<button class="pomo-mode-btn ' + (m === key ? 'active' : '') + '" style="' +
+        (m === key ? 'border-color:' + POMO_COLORS[key] + ';color:' + POMO_COLORS[key] + ';background:' + POMO_COLORS[key] + '22' : '') +
+        '" onclick="resetPomodoro(\'' + key + '\')">' + POMO_LABELS[key] + '</button>';
+    }).join("") + '</div></div>';
+}
+
+function togglePomodoro() {
+  state.pomodoroRunning = !state.pomodoroRunning;
+  if (state.pomodoroRunning) startPomodoroInterval();
+  else { clearInterval(pomodoroInterval); pomodoroInterval = null; }
+  render();
+}
+
+function startPomodoroInterval() {
+  if (pomodoroInterval) clearInterval(pomodoroInterval);
+  pomodoroInterval = setInterval(function() {
+    state.pomodoroTime--;
+    if (state.pomodoroTime <= 0) {
+      clearInterval(pomodoroInterval); pomodoroInterval = null; state.pomodoroRunning = false;
+      if (state.pomodoroMode === "work") {
+        state.pomodoroSessions++; saveState();
+        if (state.pomodoroSessions % 4 === 0) { state.pomodoroMode = "longbreak"; state.pomodoroTime = POMO_DURATIONS.longbreak; showToast("🎉 4 sessions done! Take a long break!"); }
+        else { state.pomodoroMode = "break"; state.pomodoroTime = POMO_DURATIONS["break"]; showToast("✅ Session complete! Take a short break."); }
+      } else { state.pomodoroMode = "work"; state.pomodoroTime = POMO_DURATIONS.work; showToast("🔥 Break over — let's focus!"); }
+      render(); return;
+    }
+    updatePomodoroDisplay();
+  }, 1000);
+}
+
+function startPomodoroDisplay() { if (state.pomodoroRunning && !pomodoroInterval) startPomodoroInterval(); }
+
+function updatePomodoroDisplay() {
+  var el = document.getElementById("pomo-display"); var ring = document.getElementById("pomo-ring");
+  if (!el) return;
+  var mins = String(Math.floor(state.pomodoroTime / 60)).padStart(2, "0");
+  var secs = String(state.pomodoroTime % 60).padStart(2, "0");
+  el.textContent = mins + ':' + secs;
+  if (ring) {
+    var dur = POMO_DURATIONS[state.pomodoroMode];
+    var prog = ((dur - state.pomodoroTime) / dur) * 100;
+    var r = 88; var circ = r * 2 * Math.PI;
+    ring.setAttribute("stroke-dashoffset", circ - (prog / 100) * circ);
+  }
+}
+
+function resetPomodoro(mode) {
+  clearInterval(pomodoroInterval); pomodoroInterval = null;
+  state.pomodoroMode = mode; state.pomodoroTime = POMO_DURATIONS[mode]; state.pomodoroRunning = false; render();
+}
+
+function renderParentDashboard() {
+  var stats = getStats(); var total = stats.total; var completed = stats.completed; var progress = stats.progress;
+  var active = state.assignments.filter(function(a) { return a.status !== "finished"; });
+  var overdue = active.filter(function(a) { return isOverdue(a.dueDate); });
+  var upcoming = active.filter(function(a) { var d = daysUntilDue(a.dueDate); return d > 0 && d <= 3; });
+
+  var subjectStats = SUBJECTS.map(function(s) {
+    var all = state.assignments.filter(function(a) { return a.subject === s.id; });
+    var done = all.filter(function(a) { return a.status === "finished"; });
+    var pct = all.length === 0 ? 0 : (done.length / all.length) * 100;
+    return { id: s.id, name: s.name, color: s.color, emoji: s.emoji, total: all.length, done: done.length, pct: pct };
+  }).filter(function(s) { return s.total > 0; });
+
+  var withActual = state.assignments.filter(function(a) { return a.actualMinutes && a.estimatedMinutes > 0; });
+  var avgAccuracy = 0; var totalEstimated = 0; var totalActual = 0;
+  if (withActual.length > 0) {
+    withActual.forEach(function(a) { totalEstimated += a.estimatedMinutes; totalActual += parseInt(a.actualMinutes); });
+    avgAccuracy = Math.round((totalActual / totalEstimated) * 100);
+  }
+
+  var html = '<h2 style="font-size:20px;font-weight:800;margin-bottom:4px">👨‍👦 Parent Dashboard</h2>' +
+    '<p style="font-size:13px;color:var(--text-faint);margin-bottom:20px">Overview of Felix\'s progress and time management skills.</p>' +
+    '<div class="parent-stat-grid">' +
+    '<div class="parent-stat"><div class="value" style="color:' + (progress === 100 ? '#10b981' : progress >= 50 ? '#3b82f6' : '#f59e0b') + '">' + Math.round(progress) + '%</div><div class="label">Overall Completion</div></div>' +
+    '<div class="parent-stat"><div class="value" style="color:#f1f5f9">' + completed + '/' + total + '</div><div class="label">Assignments Finished</div></div>' +
+    '<div class="parent-stat"><div class="value" style="color:' + (overdue.length > 0 ? '#ef4444' : '#10b981') + '">' + overdue.length + '</div><div class="label">Overdue</div></div>' +
+    '<div class="parent-stat"><div class="value" style="color:#f59e0b">' + upcoming.length + '</div><div class="label">Due Within 3 Days</div></div>' +
+    '<div class="parent-stat"><div class="value" style="color:#8b5cf6">' + state.pomodoroSessions + '</div><div class="label">Pomodoro Sessions</div></div></div>';
+
+  html += '<div class="card"><h3 style="font-size:16px;font-weight:700;margin-bottom:16px">Progress by Subject</h3>';
+  if (subjectStats.length === 0) html += '<p style="font-size:13px;color:var(--text-faint)">No assignments yet.</p>';
+  subjectStats.forEach(function(s) {
+    html += '<div class="subject-row">' +
+      '<span class="subject-badge" style="background:' + s.color + '22;color:' + s.color + ';border:1px solid ' + s.color + '44;min-width:180px">' + s.emoji + ' ' + s.name + '</span>' +
+      '<div class="mini-bar"><div class="mini-bar-fill" style="width:' + s.pct + '%;background:' + s.color + '"></div></div>' +
+      '<span style="font-size:13px;font-weight:700;color:' + (s.pct === 100 ? '#10b981' : '#f1f5f9') + ';min-width:60px;text-align:right">' + s.done + '/' + s.total + '</span></div>';
+  });
+  html += '</div>';
+
+  html += '<div class="card"><h3 style="font-size:16px;font-weight:700;margin-bottom:16px">⏱ Time Estimation Skills</h3>';
+  if (withActual.length === 0) {
+    html += '<p style="font-size:13px;color:var(--text-faint)">Felix hasn\'t logged any actual times yet. Once he starts filling in "Actual" time on completed assignments, you\'ll see how well he estimates.</p>';
+  } else {
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:16px">' +
+      '<div class="accuracy-insight"><div class="insight-value" style="color:' + (avgAccuracy <= 110 && avgAccuracy >= 80 ? '#10b981' : '#f59e0b') + '">' + avgAccuracy + '%</div><div class="insight-label">Avg actual vs estimated</div></div>' +
+      '<div class="accuracy-insight"><div class="insight-value" style="color:#f1f5f9">' + totalEstimated + ' min</div><div class="insight-label">Total estimated</div></div>' +
+      '<div class="accuracy-insight"><div class="insight-value" style="color:#f1f5f9">' + totalActual + ' min</div><div class="insight-label">Total actual</div></div>' +
+      '<div class="accuracy-insight"><div class="insight-value" style="color:#8b5cf6">' + withActual.length + '</div><div class="insight-label">Assignments tracked</div></div></div>' +
+      '<p style="font-size:13px;color:var(--text-dim);line-height:1.5">' +
+      (avgAccuracy <= 110 && avgAccuracy >= 80
+        ? "👍 Felix is estimating his time pretty well! His actual time is close to his estimates, which shows good self-awareness."
+        : avgAccuracy > 110
+        ? "📈 Felix tends to underestimate how long tasks take. This is very common! Encourage him to add a buffer when planning."
+        : "⚡ Felix is overestimating his task times — he's faster than he thinks! He could take on a bit more or use extra time for review.") + '</p>';
+  }
+  html += '</div>';
+
+  if (overdue.length > 0) {
+    html += '<div class="card" style="border-color:#ef444444"><h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#ef4444">⚠️ Overdue Assignments</h3>';
+    overdue.forEach(function(a) {
+      var subj = getSubject(a.subject);
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #334155">' +
+        '<div><span class="subject-badge" style="background:' + subj.color + '22;color:' + subj.color + ';border:1px solid ' + subj.color + '44;font-size:11px;padding:2px 8px">' + subj.emoji + ' ' + subj.name + '</span>' +
+        '<span style="margin-left:8px;font-weight:600">' + escapeHtml(a.title) + '</span></div>' +
+        '<span style="font-size:12px;color:#ef4444;font-weight:600">Due: ' + formatDate(a.dueDate) + '</span></div>';
+    });
+    html += '</div>';
+  }
+
+  if (upcoming.length > 0) {
+    html += '<div class="card" style="border-color:#f59e0b44"><h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#f59e0b">⏰ Due Soon (Next 3 Days)</h3>';
+    upcoming.forEach(function(a) {
+      var subj = getSubject(a.subject); var d = daysUntilDue(a.dueDate);
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #334155">' +
+        '<div><span class="subject-badge" style="background:' + subj.color + '22;color:' + subj.color + ';border:1px solid ' + subj.color + '44;font-size:11px;padding:2px 8px">' + subj.emoji + ' ' + subj.name + '</span>' +
+        '<span style="margin-left:8px;font-weight:600">' + escapeHtml(a.title) + '</span></div>' +
+        '<span style="font-size:12px;color:#f59e0b;font-weight:600">' + (d === 1 ? 'Tomorrow!' : d + ' days') + '</span></div>';
+    });
+    html += '</div>';
+  }
+  return html;
+}
+
+loadState(); render();
+</script>
+</body>
+</html>
